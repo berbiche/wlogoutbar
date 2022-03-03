@@ -4,7 +4,9 @@ import (
 	"embed"
 	"flag"
 	"fmt"
+	"errors"
 	"io"
+	"io/fs"
 	"log"
 	"os"
 	"os/signal"
@@ -169,23 +171,7 @@ func main() {
 	// load style sheet
 	log.Print(*styleFile)
 	cssProvider, _ := gtk.CssProviderNew()
-	if strings.HasPrefix(*styleFile, "embed:") {
-		style, err := embedFS.ReadFile("embed/" + strings.TrimPrefix(*styleFile, "embed:") + ".css")
-		if err != nil {
-			log.Printf("ERROR: %s css file not found. Using GTK styling.\n", *styleFile)
-		} else {
-			err = cssProvider.LoadFromData(string(style))
-			if err != nil {
-				log.Printf("ERROR: %s css file is erroneous. Using GTK styling.\n", *styleFile)
-			}
-		}
-	} else if *styleFile != "" {
-		err = cssProvider.LoadFromPath(*styleFile)
-		if err != nil {
-			log.Printf("ERROR: %s css file not found or erroneous. Using GTK styling.\n", *styleFile)
-			log.Printf("%s\n", err)
-		}
-	}
+	_ = loadCssStyle(cssProvider, styleFile)
 	screen, _ := gdk.ScreenGetDefault()
 	gtk.AddProviderForScreen(screen, cssProvider, gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
 
@@ -344,4 +330,53 @@ func main() {
 
 	win.ShowAll()
 	gtk.Main()
+}
+
+func loadCssStyle(cssProvider *gtk.CssProvider, styleFile *string) error {
+	var err error
+	// Load the user style file if the styleFile is set to "embed:"
+	// Check if the user has a style file in $XDG_CONFIG_HOME/wlogoutbar/style.css
+	// and if it exists then try to load it
+	if strings.HasPrefix(*styleFile, "embed:") {
+		if err := tryLoadingUserCssFile(cssProvider); err != nil {
+			style, err := embedFS.ReadFile("embed/" + strings.TrimPrefix(*styleFile, "embed:") + ".css")
+			if err != nil {
+				log.Printf("ERROR: %s css file not found. Using GTK styling.\n", *styleFile)
+			} else {
+				err = cssProvider.LoadFromData(string(style))
+				if err != nil {
+					log.Printf("ERROR: %s css file is erroneous. Using GTK styling.\n", *styleFile)
+				}
+			}
+		}
+	} else if *styleFile != "" {
+		err := cssProvider.LoadFromPath(*styleFile)
+		if err != nil {
+			log.Printf("ERROR: %s css file not found or erroneous. Using GTK styling.\n", *styleFile)
+			log.Printf("%s\n", err)
+		}
+	}
+	return err
+}
+
+func tryLoadingUserCssFile(cssProvider *gtk.CssProvider) error {
+	xdgConfigDir, err := os.UserConfigDir()
+	if err != nil {
+		return err
+	}
+
+	userCssFile := filepath.Join(xdgConfigDir, "wlogoutbar", "style.css")
+	log.Printf("Trying to load user CSS file at %s\n", userCssFile)
+
+	if _, err := os.Stat(userCssFile); err == nil || errors.Is(err, fs.ErrExist) {
+		if err = cssProvider.LoadFromPath(userCssFile); err != nil {
+			log.Println("Failed to load user CSS file")
+		} else {
+			log.Println("Loaded user CSS file")
+		}
+	} else {
+		log.Println("User CSS file does not exist, falling back to builtin theme")
+		log.Printf("%s\n", err)
+	}
+	return err
 }

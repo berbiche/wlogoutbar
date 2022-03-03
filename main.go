@@ -301,6 +301,8 @@ func main() {
 		alignmentBox.PackStart(mainBox, true, false, 0)
 	}
 
+	mainBox.SetVAlign(gtk.ALIGN_CENTER)
+
 	for _, b := range buttons {
 		button, _ := gtk.ButtonNew()
 		button.SetAlwaysShowImage(true)

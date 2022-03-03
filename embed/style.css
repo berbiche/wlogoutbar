@@ -1,5 +1,5 @@
 window {
-  background: alpha(@theme_bg_color, 0.8);
+  background: alpha(@theme_bg_color, 0.9);
 }
 
 button {

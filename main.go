@@ -236,6 +236,13 @@ func main() {
 		innerOrientation = gtk.ORIENTATION_VERTICAL
 	}
 
+	if *position == "center" && *full {
+		layershell.SetAnchor(win, layershell.LAYER_SHELL_EDGE_RIGHT, true)
+		layershell.SetAnchor(win, layershell.LAYER_SHELL_EDGE_LEFT, true)
+		layershell.SetAnchor(win, layershell.LAYER_SHELL_EDGE_BOTTOM, true)
+		layershell.SetAnchor(win, layershell.LAYER_SHELL_EDGE_TOP, true)
+	}
+
 	layershell.SetMargin(win, layershell.LAYER_SHELL_EDGE_TOP, *marginTop)
 	layershell.SetMargin(win, layershell.LAYER_SHELL_EDGE_LEFT, *marginLeft)
 	layershell.SetMargin(win, layershell.LAYER_SHELL_EDGE_RIGHT, *marginRight)
